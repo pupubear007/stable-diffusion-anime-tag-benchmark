@@ -1,3 +1,4 @@
+import re
 import copy
 from pathlib import Path
 
@@ -5,101 +6,21 @@ import orjson
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from common import 模型数据
 
 
 Path('测试结果').mkdir(exist_ok=True)
 
 
 def _模型改名(x):    # 为了让表格在 GitHub 上显示更好看
-    return {
-        'AnythingV5Ink_ink': 'A5Ink',
-        'anything-v4.5-pruned-fp32': 'A4.5',
-        'ApricotEyes_v10': 'AE10',
-        'aiceKawaice_channel': 'AKC',
-        'calicomix_v75': 'CCM75',
-        'Counterfeit-V2.2': 'CF2.2',
-        'Counterfeit-V3.0_fp16': 'CF3.0',
-        'counterfeitV30_20': 'CF2.0',
-        'cosplaymix_v20': 'CPM20',
-        'novelailatest-pruned': 'novelai',
-        'sweetfruit_melon.safetensors_v1.0': 'SF1.0',
-        'bluePencil_v9': 'BP9',
-        'bluePencil_v10': 'BP10',
-        'blue_pencil-XL-v0.3.1': 'BPXL0.3.1',
-        'CounterfeitXL-V1.0': 'CFXL1.0',
-        'counterfeitxl_v20': 'CFXL2.0',
-        'counterfeitxl_v25': 'CFXL2.5',
-        'coharumix_v6': 'CHM6',
-        'cuteyukimixAdorable_echodimension': 'CYE',
-        'cuteyukimixAdorable_midchapter': 'CYM',
-        'cuteyukimixAdorable_midchapter2': 'CYM2',
-        'cuteyukimixAdorable_midchapter3': 'CYM3',
-        'cuteyukimixAdorable_neochapter': 'CYN',
-        'cuteyukimixAdorable_neochapter2': 'CYN2',
-        'cuteyukimixAdorable_neochapter3': 'CYN3',
-        'cuteyukimixAdorable_specialchapter': 'CYS',
-        'cuteyukimixAdorable_naiV3style': 'CYnai3',
-        'cuteyukimixAdorable_kemiao': 'CYKM',
-        'cuteyukimixAdorable_kemiaomiao': 'CYKMM',
-        'Counterfeit-V2.5_pruned': 'CF2.5',
-        'cocotifacute_v20': 'CC20',
-        'etherBluMix_etherBluMix5': 'EB5',
-        'irismix_v90': 'I90',
-        'jitq_v20': 'JQ20',
-        'jitq_v30': 'JQ30',
-        'himawarimix_v100': 'HW100',
-        'pastelMixStylizedAnime_pastelMixPrunedFP16': 'PM',
-        'petitcutie_v15': 'PC15',
-        'petitcutie_v20': 'PC20',
-        'perfectWorld_v2Baked': 'PW2',
-        'perfectWorld_v6Baked': 'PW6',
-        'meinamix_meinaV11': 'MM11',
-        'mixProV4_v4': 'MP4',
-        'cetusMix_cetusVersion2': 'CM2',
-        'cetusMix_cetusVersion3': 'CM3',
-        'cetusMix_v4': 'CM4',
-        'cetusMix_Whalefall2': 'CMWF2',
-        'cetusMix_Coda2': 'CMC2',
-        'sakuramochimix_v10': 'SMM10',
-        'sweetMix_v22Flat': 'SM22F',
-        'anyloraCheckpoint_novaeFp16': 'AL',
-        'anythingV3_fp16': 'A3',
-        'ghostmix_v20Bakedvae': 'GM20',
-        'aoaokoPVCStyleModel_pvcAOAOKO': 'APVC',
-        'PVCStyleModelMovable_v20NoVae': 'PVC20',
-        'PVCStyleModelMovable_v30': 'PVC30',
-        'PVCStyleModelFantasy_betaV10': 'PVCFB10',
-        'divineelegancemix_V9': 'DLM9',
-        'darkSushiMixMix_225D': 'DS225',
-        'superInvincibleAnd_v2': 'SIA2',
-        'koji_v21': 'KJ21',
-        'kaywaii_v50': 'KW50',
-        'kaywaii_v60': 'KW60',
-        'kaywaii_v70': 'KW70',
-        'kaywaii_v80': 'KW80',
-        'kaywaii_v85': 'KW85',
-        'kaywaii_v90': 'KW90',
-        'rainbowsweets_v20': 'RS20',
-        'rabbit_v7': 'R7',
-        'rimochan_random_mix': 'RRM',
-        'rimochan_random_mix_1.1': 'RRM1.1',
-        'rimochan_random_mix_2.0': 'RRM2',
-        'rimochan_random_mix_2.1': 'RRM2.1',
-        'rimochan_random_mix_3.2': 'RRM3.2',
-        'theWondermix_v12': 'TWM12',
-        'Yorunohitsuji-v1.0': 'YH',
-        'yetanotheranimemodel_v20': 'YAA20',
-        'Aidv210AnimeIllustDiffusion_aidv28': 'AID28',
-        'Aidv210AnimeIllustDiffusion_aidv210': 'AID210',
-        'hassakuXLSfwNsfwBeta_betaV01': 'HXLB01',
-        'reproductionSDXL_2v12': 'RXL2v12',
-        'animeIllustDiffusion_v052': 'AIDXL52',
-        'animeIllustDiffusion_v061': 'AIDXL61',
-        'kohakuXLBeta_beta7': 'KXLB7',
-    }.get(x, x)
+    return {i[0]: i[2] for i in 模型数据}.get(x, x)
 
 
-readme要的 = {'A5Ink', 'AL', 'AOM3A1', 'BP10', 'CF3.0', 'CM4', 'CYS', 'KW70', 'SF1.0', 'SM10', 'novelai', 'RRM3.2', 'KXLB7', 'CFXL2.5'}
+def _is_XL(x):
+    return {i[2]: i[3] for i in 模型数据}.get(x, False)
+
+
+readme要的 = {'A5Ink', 'AL', 'AOM3A1', 'BP10', 'CF3.0', 'CM4', 'CYS', 'KW70', 'SF1.0', 'SM10', 'CXL2.0', 'KXLB7', 'NAXL10', 'NAI3'}
 
 
 def _加粗(data: dict[str, list], yy):
@@ -144,7 +65,7 @@ def 导出单标签():
             m[model, d['标签']] = 好, n
             all_model.add(model)
             all_tag.add(d['标签'])
-    all_model = sorted(all_model, key=lambda x: x if 'XL' in x else '0' + x)
+    all_model = sorted(all_model, key=lambda x: x if _is_XL(x) else '0' + x)
     all_tag = sorted(all_tag)
 
     好标签 = []     # 至少1个不为0且不为None
@@ -178,35 +99,37 @@ def 导出单标签():
     目录 = orjson.loads(open('data/目录.json', encoding='utf-8').read())
     目录['总体'] = {'name': '总体', 'keys': []}
     逆转目录 = {}
-    mm = {}
     for k, v in 目录.items():
         for i in v['keys']:
             逆转目录[i.lower().replace(' ', '_')] = k
-    for (model, tag), (好, n) in m.items():
-        if tag not in 满标签:
-            continue
-        for 大 in [逆转目录[tag], '总体']:
-            原好, 原n = mm.get((model, 大), (0, 0))
-            mm[model, 大] = 好 + 原好, n + 原n
-    data = {}
-    sorted_目录 = sorted(目录)
-    for model in all_model:
-        data[model] = []
-        for 大 in sorted_目录:
-            t = mm.get((model, 大))
-            if t is None:
-                data[model].append('-')
-            else:
-                好, n = t
-                if n <= 32:     # 不置信
+    超逆转目录 = {k: v.split('-')[0] for k, v in 逆转目录.items()}
+    for 逆, 文件名 in [(逆转目录, '模型对标签类别-准确率'), (超逆转目录, '模型对标签大类-准确率')]:
+        mm = {}
+        for (model, tag), (好, n) in m.items():
+            if tag not in 满标签:
+                continue
+            for 大 in [逆[tag], '总体']:
+                原好, 原n = mm.get((model, 大), (0, 0))
+                mm[model, 大] = 好 + 原好, n + 原n
+        data = {}
+        sorted_目录 = sorted({k[1] for k in mm})
+        for model in all_model:
+            data[model] = []
+            for 大 in sorted_目录:
+                t = mm.get((model, 大))
+                if t is None:
                     data[model].append('-')
                 else:
-                    data[model].append(round(好 / n, 3))
-    # data = {k: v for k, v in data.items() if k in readme要的}
-    df = pd.DataFrame(_加粗(data, sorted_目录), index=[目录[i]['name'] for i in sorted_目录])
-    df.to_pickle('测试结果/模型对标签类别-准确率.pkl')
-    with open('测试结果/模型对标签类别-准确率.md', 'w', encoding='utf8') as f:
-        f.write('# 模型对标签类别-准确率: \n\n<sub>\n\n' + df.to_markdown() + '\n\n</sub>\n\n')
+                    好, n = t
+                    if n <= 32:     # 不置信
+                        data[model].append('-')
+                    else:
+                        data[model].append(round(好 / n, 3))
+        # data = {k: v for k, v in data.items() if k in readme要的}
+        pd.DataFrame(data, index=[目录.get(i, {}).get('name', i) for i in sorted_目录]).to_pickle(f'测试结果/{文件名}.pkl')
+        df = pd.DataFrame(_加粗(data, sorted_目录), index=[目录.get(i, {}).get('name', i) for i in sorted_目录])
+        with open(f'测试结果/{文件名}.md', 'w', encoding='utf8') as f:
+            f.write(f'# {文件名}: \n\n<sub>\n\n' + df.to_markdown() + '\n\n</sub>\n\n')
 
 
 def 导出单标签2():
@@ -224,7 +147,7 @@ def 导出单标签2():
                     计[kk] += vv
     n = len(模型标签计数)
     data = {}
-    top_n = 8
+    top_n = 12
     for k, v in sorted(模型标签计数.items()):
         差v = {kk: (vv / (标签计数.get(kk)/n + 1000)) for kk, vv in v.items()}
         data[k] = [x[0] for x in sorted(差v.items(), key=lambda x: x[1], reverse=True)[:top_n]]
@@ -259,7 +182,7 @@ def 导出单标签2():
         q[k]['头发颜色'] = max([(v.get(x, 0), x) for x in 头发颜色])[1].removesuffix('_hair').replace('blonde', 'yellow')
     with open('测试结果/模型偏好角色属性.md', 'w', encoding='utf8') as f:
         f.write('# 模型偏好角色属性: \n\n<sub>\n\n' + pd.DataFrame(q).T.to_markdown() + '\n\n</sub>\n\n')
-    from bokeh.plotting import figure, show
+    from bokeh.plotting import figure, show, save
     from bokeh.models.annotations import Label
     模型 = [*模型标签计数]
     x = [q[i]['胸部大小'] for i in 模型]
@@ -271,27 +194,31 @@ def 导出单标签2():
     for i in range(len(x)):
         label = Label(x=x[i]+0.0014, y=y[i]-0.0046, text=模型[i], text_font_size='9pt')
         p.add_layout(label)
-    show(p)
+    save(p, '导出单标签2.html')
 
 
 
 def 导出多标签():
-    l = orjson.loads(open('savedata/记录_多标签.json', encoding='utf-8').read())
     m = {}
-    for d in l:
-        n = len(d['标签组'])
-        model = _模型改名(d['参数']['override_settings']['sd_model_checkpoint'])
-        if '+' in model or model in ('rimo_random_mix_1', 'rimo_random_mix_2'):
-            continue
-        m.setdefault((model, n), {'相似度': [], '分数': []})
-        m[model, n]['相似度'].extend(d['相似度'])
-        m[model, n]['分数'].extend(d['分数'])
+    for 文件 in tqdm([*Path('savedata').glob('多标签_*_记录.json')]):
+        for d in orjson.loads(open(文件, 'rb').read()):
+            n = len(d['标签组'])
+            if d['参数']['width'] != 512:
+                continue
+            model = _模型改名(d['参数']['override_settings']['sd_model_checkpoint'])
+            if '+' in model or model in ('rimo_random_mix_1', 'rimo_random_mix_2'):
+                continue
+            m.setdefault((model, n), {'相似度': [], '分数': []})
+            m[model, n]['相似度'].extend(d['相似度'])
+            m[model, n]['分数'].extend(d['分数'])
+    print(d['参数']['width'])
     all_model, all_n = zip(*m.keys())
-    all_model = sorted({*all_model}, key=lambda x: x if 'XL' in x else '0' + x)
+    all_model = sorted({*all_model}, key=lambda x: x if _is_XL(x) else '0' + x)
     all_n = sorted({*all_n})
 
     data = {}
     data2 = {}
+    d_shape = {}
     for model in all_model:
         data[model] = []
         data2[model] = []
@@ -302,17 +229,18 @@ def 导出多标签():
                 data2[model].append('-')
             else:
                 a = np.array(m[model, n]['分数'])
+                assert d_shape.setdefault(a.shape[0], a.shape) == a.shape, f'{model}测试结果的形状{a.shape}不对！'
                 acc = (a > 0.001).sum() / len(a.flatten())
                 data[model].append(round(acc, 3))
                 data2[model].append(round(1 - np.array(m[model, n]['相似度']).mean(), 3))
     # data = {k: v for k, v in data.items() if k in readme要的}
     # data2 = {k: v for k, v in data2.items() if k in readme要的}
 
-    with open('测试结果/模型对标签个数.md', 'w', encoding='utf8') as f:
+    with open('测试结果/模型对标签个数-准确率和多样性.md', 'w', encoding='utf8') as f:
         f.write('# 模型对标签个数-准确率: \n\n<sub>\n\n' + pd.DataFrame(_加粗(data, all_n), index=all_n).to_markdown() + '\n\n</sub>\n\n')
         f.write('# 模型对标签个数-多样性: \n\n<sub>\n\n' + pd.DataFrame(_加粗(data2, all_n), index=all_n).to_markdown() + '\n\n</sub>\n\n')
 
-    # from bokeh.plotting import figure, show
+    # from bokeh.plotting import figure, save
     # from bokeh.models.annotations import Label
     # x = [data[i][4] for i in all_model]
     # y = [data2[i][4] for i in all_model]
@@ -324,11 +252,12 @@ def 导出多标签():
     #         y[i] = 0
     # x, y = _分离(x, y)
     # p = figure(title="散点图", x_axis_label="准确度", y_axis_label="多样性", x_range = (min(x)-0.005, max(x)+0.01), width=1280, height=640)
-    # p.circle(x, y, size=10, color="blue", alpha=0.5)
+    # color = [('blue', 'red')[_is_XL(i)] for i in all_model]
+    # p.circle(x, y, size=10, color=color, alpha=0.5)
     # for i in range(len(x)):
     #     label = Label(x=x[i]+0.001, y=y[i]-0.0011, text=all_model[i], text_font_size='8pt')
     #     p.add_layout(label)
-    # show(p)
+    # save(p, '导出多标签.html')
 
 
 
@@ -360,6 +289,64 @@ def 导出不同参数():
             f.write(f'{pd.DataFrame(data, index=all_y).to_markdown()}\n\n')
 
 
+def 导出角色():
+    作品人 = {
+        'touhou': ['alice margatroid', 'chen', 'cirno', 'clownpiece', 'daiyousei', 'flandre scarlet', 'fujiwara no mokou', 'futatsuiwa mamizou', 'hakurei reimu', 'hata no kokoro', 'hieda no akyuu', 'hinanawi tenshi', 'hong meiling', 'houjuu nue', 'ibaraki kasen', 'imaizumi kagerou', 'inaba tewi', 'inubashiri momiji', 'izayoi sakuya', 'kaenbyou rin', 'kaku seiga', 'kamishirasawa keine', 'kasodani kyouko', 'kawashiro nitori', 'kazami yuuka', 'kijin seija', 'kirisame marisa', 'kishin sagume', 'koakuma', 'kochiya sanae', 'komeiji koishi', 'komeiji satori', 'konpaku youmu', 'letty whiterock', 'mizuhashi parsee', 'moriya suwako', 'murasa minamitsu', 'mystia lorelei', 'nagae iku', 'nazrin', 'onozuka komachi', 'patchouli knowledge', 'reisen udongein inaba', 'reiuji utsuho', 'remilia scarlet', 'rumia', 'saigyouji yuyuko', 'sekibanki', 'shameimaru aya', 'tatara kogasa', 'toramaru shou', 'toyosatomimi no miko', 'usami renko', 'yakumo ran', 'yakumo yukari', 'hijiri byakuren', 'shiki eiki','kagiyama hina', 'ibuki suika','houraisan kaguya', 'himekaidou hatate', 'mononobe no futo', 'wakasagihime','wriggle nightbug', 'hecatia lapislazuli', 'doremy sweet','yorigami shion', "yorigami jo'on", 'sukuna shinmyoumaru', 'kurodani yamame', 'usami sumireko', 'yagokoro eirin', 'soga no tojiko', 'miyako yoshika', 'yasaka kanako', 'motoori kosuzu', 'hyakumantenbara salome'],
+        'idolmaster': ['amami haruka', 'ganaha hibiki', 'hoshii miki', 'jougasaki mika', 'maekawa miku', 'minase iori', 'shijou takane', 'takagaki kaede', 'yumemi riamu', 'yumemi riamu', 'shibuya rin', 'ichinose shiki', 'sagisawa fumika', 'higuchi madoka', 'kanzaki ranko', 'shirasaka koume', 'mayuzumi fuyuko', 'hayami kanade', 'kokubunji suou', 'hachimiya meguru', 'koshimizu sachiko', 'nitta minami', 'sunazuka akira', 'shirase sakuya', 'futaba anzu', 'shimamura uzuki', 'konoe kanata', 'hoshi syoko', 'morino rinze', 'jougasaki rika', 'kamiya nao', 'akagi miria', 'asakura toru', 'ohtsuki yui'],
+        'fate': ['mash kyrielight', 'illyasviel von einzbern', 'tohsaka rin', 'matou sakura', 'miyu edelfelt', 'chloe von einzbern'],
+        'genshin_impact': ['raiden shogun', 'yae miko', 'sangonomiya kokomi', 'kamisato ayaka'],
+        'hololive': ['houshou marine', 'gawr gura', 'minato aqua', 'shirakami fubuki', 'kitagawa marin', 'hoshimachi suisei', 'uruha rushia', "ninomae ina'nis", 'gotou hitori', 'nakiri ayame', 'nekomata okayu', 'shirogane noel', 'usada pekora', 'amane kanata', 'ookami mio', 'inugami korone', 'murasaki shion', 'sakura miko', 'tokoyami towa', 'yukihana lamy', 'akai haato', 'natsuiro matsuri', 'hoshikawa sara', 'tsukino mito', 'oozora subaru', 'kiryu coco', 'shishiro botan']
+    }
+    作品名 = {
+        'touhou': '东方',
+        'genshin_impact': '原神',
+        'fate': 'fate',
+        'hololive': 'hololive',
+        'kancolle': '舰娘',
+        'idolmaster': '偶像大师',
+        'arknights': '明日方舟',
+        'azur_lane': '碧蓝航线',
+        'pokemon': '宝可梦',
+        'umamusume': '赛马娘',
+        "girls'_frontline": '少女前线',
+        'blue_archive': '蔚蓝档案',
+    }
+    def _人对应作品(x):
+        a = re.findall('.+\((.+)\)', x)
+        if a:
+            return a[0]
+        for k, v in 作品人.items():
+            if x.replace('_', ' ') in v:
+                return k
+    data = {}
+    for 文件 in [*Path('savedata').glob('人物_*_记录.json')]:
+        with open(文件, 'r', encoding='utf8') as f:
+            记录 = orjson.loads(f.read())
+        m = {}
+        for d in 记录:
+            model = _模型改名(d['参数']['override_settings']['sd_model_checkpoint'])
+            总分数 = []
+            for l in d['预测']:
+                分数 = 0
+                for i, (k, v) in enumerate(l):
+                    ll = len(l)
+                    if k.replace(' ', '_') == d['人']:
+                        分数 = (ll-i)/ll
+                        break
+                总分数.append(分数)
+            m[d['人']] = np.mean(总分数)
+        z = {}
+        for 人 in m:
+            if 作品 := _人对应作品(人):
+                z.setdefault(作品, [0, 0])
+                z[作品][0] += m[人]
+                z[作品][1] += 1
+        data[model] = [f'{int(z[k][0])}/{z[k][1]}' for k in sorted(作品名)]
+        data[model].append(f'{int(np.sum([*m.values()]))}/{len(m)}')
+    with open('测试结果/不同模型对不同作品角色的准确率.md', 'w', encoding='utf8') as f:
+        f.write(f'{pd.DataFrame(data, index=[作品名[k] for k in sorted(作品名)]+["总体"]).to_markdown()}\n\n')
+
+
 def 导出clip_skip():
     l = orjson.loads(open('savedata/记录_clip_skip.json', encoding='utf-8').read())
     d = {}
@@ -386,5 +373,6 @@ if __name__ == '__main__':
     导出单标签()
     导出单标签2()
     导出多标签()
+    导出角色()
     导出不同参数()
     导出clip_skip()
