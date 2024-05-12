@@ -308,7 +308,6 @@ def 导出角色():
         'azur_lane': '碧蓝航线',
         'pokemon': '宝可梦',
         'umamusume': '赛马娘',
-        "girls'_frontline": '少女前线',
         'blue_archive': '蔚蓝档案',
     }
     def _人对应作品(x):
@@ -325,16 +324,7 @@ def 导出角色():
         m = {}
         for d in 记录:
             model = _模型改名(d['参数']['override_settings']['sd_model_checkpoint'])
-            总分数 = []
-            for l in d['预测']:
-                分数 = 0
-                for i, (k, v) in enumerate(l):
-                    ll = len(l)
-                    if k.replace(' ', '_') == d['人']:
-                        分数 = (ll-i)/ll
-                        break
-                总分数.append(分数)
-            m[d['人']] = np.mean(总分数)
+            m[d['人']] = np.mean([d['人'] in i for i in d['预测']])
         z = {}
         for 人 in m:
             if 作品 := _人对应作品(人):
@@ -343,6 +333,7 @@ def 导出角色():
                 z[作品][1] += 1
         data[model] = [f'{int(z[k][0])}/{z[k][1]}' for k in sorted(作品名)]
         data[model].append(f'{int(np.sum([*m.values()]))}/{len(m)}')
+    # data = {k: v for k, v in sorted(data.items(), key=lambda x: x[0] if _is_XL(x[0]) else '0' + x[0]) if k in readme要的}
     with open('测试结果/不同模型对不同作品角色的准确率.md', 'w', encoding='utf8') as f:
         f.write(f'{pd.DataFrame(data, index=[作品名[k] for k in sorted(作品名)]+["总体"]).to_markdown()}\n\n')
 
