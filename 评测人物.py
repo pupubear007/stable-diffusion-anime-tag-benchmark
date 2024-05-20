@@ -4,12 +4,8 @@ import orjson
 from tqdm import tqdm
 from imgutils.tagging import get_wd14_tags
 
-from common import safe_name, txt2img, txt2img_nai3, check_model, 参数相同, 模型数据
+from common import safe_name, txt2img, txt2img_nai3, check_model, 参数相同, 模型数据, 要测的人
 
-
-人频率 = {k: v for k, v in orjson.loads(open('data\人频率.json').read()).items() if v > 32}
-要测的人 = [i[0] for i in sorted(人频率.items(), key=lambda x: -x[1])]
-print(len(要测的人))
 
 check_model(模型数据)
 

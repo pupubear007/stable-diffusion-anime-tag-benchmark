@@ -98,5 +98,5 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
 
 
 if __name__ == '__main__':
-    for (model, VAE, _), (m, n_iter) in tqdm([*itertools.product(模型数据, ((2, 110), (4, 100), (8, 90), (16, 80), (32, 70), (64, 60), (128, 50)))]):
+    for (model, VAE, *_), (m, n_iter) in tqdm([*itertools.product(模型数据, ((2, 110), (4, 100), (8, 90), (16, 80), (32, 70), (64, 60), (128, 50)))]):
         评测模型(model, VAE, m, n_iter, 图片缓存=True)

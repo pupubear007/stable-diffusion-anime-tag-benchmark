@@ -79,5 +79,5 @@ def 评测模型(model, VAE) -> list[dict]:
     return 记录
 
 
-for model, VAE, _ in tqdm(模型数据, ncols=70, desc='all'):
+for model, VAE, *_ in tqdm(模型数据, ncols=70, desc='all'):
     评测模型(model, VAE)

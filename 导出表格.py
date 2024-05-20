@@ -6,7 +6,7 @@ import orjson
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from common import 模型数据
+from common import 模型数据, 要测的人
 
 
 Path('测试结果').mkdir(exist_ok=True)
@@ -20,7 +20,7 @@ def _is_XL(x):
     return {i[2]: i[3] for i in 模型数据}.get(x, False)
 
 
-readme要的 = {'A5Ink', 'AL', 'AOM3A1', 'BP10', 'CF3.0', 'CM4', 'CYS', 'KW70', 'SF1.0', 'SM10', 'CXL2.0', 'KXLB7', 'NAXL10', 'NAI3'}
+readme要的 = {'A5Ink', 'AL', 'AOM3A1', 'BP10', 'CF3.0', 'CM4', 'CYS', 'KW70', 'SF1.0', 'SM10', 'CXL3.0', 'KXLB7', 'NAXL10', 'NAI3'}
 
 
 def _加粗(data: dict[str, list], yy):
@@ -189,7 +189,7 @@ def 导出单标签2():
     y = [q[i]['头发长度'] for i in 模型]
     x, y = _分离(x, y, t=0.004)
     color = [q[i]['头发颜色'] for i in 模型]
-    p = figure(title="散点图", x_axis_label="胸部大小", y_axis_label="头发长度", x_range = (min(x)-0.005, max(x)+0.01), width=1280, height=640)
+    p = figure(title="散点图", x_axis_label="胸部大小", y_axis_label="头发长度", x_range = (min(x)-0.005, max(x)+0.01), width=1440, height=720)
     p.circle(x, y, size=10, color=color)
     for i in range(len(x)):
         label = Label(x=x[i]+0.0014, y=y[i]-0.0046, text=模型[i], text_font_size='9pt')
@@ -251,7 +251,7 @@ def 导出多标签():
     #     if v == '-':
     #         y[i] = 0
     # x, y = _分离(x, y)
-    # p = figure(title="散点图", x_axis_label="准确度", y_axis_label="多样性", x_range = (min(x)-0.005, max(x)+0.01), width=1280, height=640)
+    # p = figure(title="散点图", x_axis_label="准确度", y_axis_label="多样性", x_range = (min(x)-0.005, max(x)+0.01), width=1440, height=720)
     # color = [('blue', 'red')[_is_XL(i)] for i in all_model]
     # p.circle(x, y, size=10, color=color, alpha=0.5)
     # for i in range(len(x)):
@@ -304,10 +304,6 @@ def 导出角色():
         'hololive': 'hololive',
         'kancolle': '舰娘',
         'idolmaster': '偶像大师',
-        'arknights': '明日方舟',
-        'azur_lane': '碧蓝航线',
-        'pokemon': '宝可梦',
-        'umamusume': '赛马娘',
         'blue_archive': '蔚蓝档案',
     }
     def _人对应作品(x):
@@ -318,14 +314,18 @@ def 导出角色():
             if x.replace('_', ' ') in v:
                 return k
     data = {}
+    全m = {}
     for 文件 in [*Path('savedata').glob('人物_*_记录.json')]:
         with open(文件, 'r', encoding='utf8') as f:
             记录 = orjson.loads(f.read())
         m = {}
         for d in 记录:
+            if d['人'].replace('_', ' ') not in 要测的人:
+                continue
             model = _模型改名(d['参数']['override_settings']['sd_model_checkpoint'])
             m[d['人']] = np.mean([d['人'] in i for i in d['预测']])
-        z = {}
+        全m[model] = m
+        z = {k: [0, 0] for k in sorted(作品名)}
         for 人 in m:
             if 作品 := _人对应作品(人):
                 z.setdefault(作品, [0, 0])
@@ -334,8 +334,12 @@ def 导出角色():
         data[model] = [f'{int(z[k][0])}/{z[k][1]}' for k in sorted(作品名)]
         data[model].append(f'{int(np.sum([*m.values()]))}/{len(m)}')
     # data = {k: v for k, v in sorted(data.items(), key=lambda x: x[0] if _is_XL(x[0]) else '0' + x[0]) if k in readme要的}
-    with open('测试结果/不同模型对不同作品角色的准确率.md', 'w', encoding='utf8') as f:
+    with open('测试结果/模型对不同作品的准确率.md', 'w', encoding='utf8') as f:
         f.write(f'{pd.DataFrame(data, index=[作品名[k] for k in sorted(作品名)]+["总体"]).to_markdown()}\n\n')
+    df = pd.DataFrame(全m)
+    df.to_pickle('测试结果/模型对不同角色的准确率.pkl')
+    with open('测试结果/模型对不同角色的准确率.md', 'w', encoding='utf8') as f:
+        f.write(f'{df.to_markdown()}\n\n')
 
 
 def 导出clip_skip():

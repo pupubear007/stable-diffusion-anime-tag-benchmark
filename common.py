@@ -3,6 +3,7 @@ import re
 import base64
 from typing import Union, Optional
 
+import orjson
 import requests
 from PIL import Image
 import rimo_storage.cache
@@ -261,8 +262,14 @@ def 图像质量(images) -> list[list[dict]]:
     ('aingdiffusionXL_v11', None, 'ADXL11', True),
     ('ConfusionXL1.0', 'sdxl_vae_0.9.safetensors', 'CXL1.0', True),
     ('ConfusionXL2.0', 'sdxl_vae_0.9.safetensors', 'CXL2.0', True),
+    ('ConfusionXL3.0', 'sdxl_vae_0.9.safetensors', 'CXL3.0', True),
     ('PVCStyleModelFantasy_betaV10', 'sdxl_vae.safetensors', 'PVCFB10', True),
     ('PVCStyleModelMovable_beta25Realistic', None, 'PVCFB25', True),
     ('netaArtXL_v10', None, 'NAXL10', True),
-    ('nai-diffusion-3', None, 'NAI3', True)
+    ('nai-diffusion-3', None, 'NAI3', True),
 ]
+
+
+人频率1 = {k: v for k, v in orjson.loads(open('data\人频率6000000~7000000.json').read()).items() if v > 24}
+人频率2 = {k: v for k, v in orjson.loads(open('data\人频率1~6400000.json').read()).items() if v > 64}
+要测的人 = sorted(set(人频率1) | set(人频率2))
