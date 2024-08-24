@@ -8,20 +8,20 @@ import orjson
 from PIL import Image
 from tqdm import tqdm
 
-from common import txt2img, txt2img_nai3, ml_danbooru标签, safe_name, check_model, 图像相似度, 要测的标签, 参数相同, 图像质量, 模型数据
+from common import ml_danbooru标签, safe_name, 图像相似度, 要测的标签, 参数相同, 图像质量, 模型数据
+from backend_diffusers import txt2img
 
-sampler = 'DPM++ 2M Karras'
+sampler = 'DPM++ 2M'
+scheduler = 'Karras'
 steps = 30
 cfg_scale = 7
 
 存图文件夹 = Path('out_多标签')
 存图文件夹.mkdir(exist_ok=True)
 
-check_model(模型数据)
 
-
-def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prompt='', seed=1, tags_seed=0, 计算相似度=True, width=512, height=512, 图片缓存=False, 计算图像质量=True):
-    存档文件名 = f'savedata/多标签_{model}_记录.json'
+def 评测模型(model, VAE, m, n_iter, *, use_tqdm=True, savedata=True, extra_prompt='', seed=1, tags_seed=0, 计算相似度=True, width=512, height=512, 图片缓存=False,  计算图像质量=True, model_type):
+    存档文件名 = f'savedata/多标签_{model}_{width}_记录.json'
     if Path(存档文件名).exists():
         with open(存档文件名, 'r', encoding='utf8') as f:
             记录 = orjson.loads(f.read())
@@ -42,13 +42,15 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             'width': width,
             'height': height,
             'steps': steps,
-            'sampler_index': sampler,
+            'sampler_name': sampler,
+            'scheduler': scheduler,
             'cfg_scale': cfg_scale,
             'override_settings': {
                 'sd_model_checkpoint': model,
                 'sd_vae': VAE,
                 'CLIP_stop_at_last_layers': 1,
             },
+            'model_type': model_type,
         }
         skip = False
         for i in 记录:
@@ -62,10 +64,7 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
             'batch_size': 4,
             'n_iter': 2,
         }
-        if model == 'nai-diffusion-3':
-            图s = txt2img_nai3(数量参数 | 参数)
-        else:
-            图s = txt2img(数量参数 | 参数, 图片缓存)
+        图s = txt2img(数量参数 | 参数, 缓存=图片缓存)
         md5 = hashlib.md5(str(标签组).encode()).hexdigest()
         for i, b in enumerate(图s):
             with open(存图文件夹 / safe_name(f'{md5}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png'), 'wb') as f:
@@ -98,5 +97,5 @@ def 评测模型(model, VAE, m, n_iter, use_tqdm=True, savedata=True, extra_prom
 
 
 if __name__ == '__main__':
-    for (model, VAE, *_), (m, n_iter) in tqdm([*itertools.product(模型数据, ((2, 110), (4, 100), (8, 90), (16, 80), (32, 70), (64, 60), (128, 50)))]):
-        评测模型(model, VAE, m, n_iter, 图片缓存=True)
+    for (model, VAE, 简称, model_type), (m, n_iter, size) in tqdm([*itertools.product(模型数据, ((2, 110, 512), (4, 100, 512), (8, 90, 512), (16, 80, 512), (32, 70, 512), (64, 60, 512), (128, 50, 512), (32, 70, 768)))]):
+        评测模型(model, VAE, m, n_iter, width=size, height=size, 图片缓存=True, model_type=model_type)

@@ -17,10 +17,10 @@ def _模型改名(x):    # 为了让表格在 GitHub 上显示更好看
 
 
 def _is_XL(x):
-    return {i[2]: i[3] for i in 模型数据}.get(x, False)
+    return {i[2]: i[3]=='sdxl' for i in 模型数据}.get(x, False)
 
-
-readme要的 = {'A5Ink', 'AL', 'AOM3A1', 'BP10', 'CF3.0', 'CM4', 'CYS', 'KW70', 'SF1.0', 'SM10', 'CXL3.0', 'KXLB7', 'NAXL10', 'NAI3'}
+readme_mode = False
+readme要的 = {'A5Ink', 'AL', 'AOM3A1', 'BP10', 'CF3.0', 'CM4', 'CYS', 'KW70', 'SF1.0', 'CXL4.0', 'KXLB7', 'NAXL10', 'NAI3', 'FLUX1S'}
 
 
 def _加粗(data: dict[str, list], yy):
@@ -125,10 +125,11 @@ def 导出单标签():
                         data[model].append('-')
                     else:
                         data[model].append(round(好 / n, 3))
-        # data = {k: v for k, v in data.items() if k in readme要的}
+        if readme_mode:
+            data = {k: v for k, v in data.items() if k in readme要的}
         pd.DataFrame(data, index=[目录.get(i, {}).get('name', i) for i in sorted_目录]).to_pickle(f'测试结果/{文件名}.pkl')
         df = pd.DataFrame(_加粗(data, sorted_目录), index=[目录.get(i, {}).get('name', i) for i in sorted_目录])
-        with open(f'测试结果/{文件名}.md', 'w', encoding='utf8') as f:
+        with open(f'测试结果/{文件名}{readme_mode or ""}.md', 'w', encoding='utf8') as f:
             f.write(f'# {文件名}: \n\n<sub>\n\n' + df.to_markdown() + '\n\n</sub>\n\n')
 
 
@@ -233,31 +234,39 @@ def 导出多标签():
                 acc = (a > 0.001).sum() / len(a.flatten())
                 data[model].append(round(acc, 3))
                 data2[model].append(round(1 - np.array(m[model, n]['相似度']).mean(), 3))
-    # data = {k: v for k, v in data.items() if k in readme要的}
-    # data2 = {k: v for k, v in data2.items() if k in readme要的}
-
-    with open('测试结果/模型对标签个数-准确率和多样性.md', 'w', encoding='utf8') as f:
+    if readme_mode:
+        data = {k: v for k, v in data.items() if k in readme要的}
+        data2 = {k: v for k, v in data2.items() if k in readme要的}
+    with open(f'测试结果/模型对标签个数-准确率和多样性{readme_mode or ""}.md', 'w', encoding='utf8') as f:
         f.write('# 模型对标签个数-准确率: \n\n<sub>\n\n' + pd.DataFrame(_加粗(data, all_n), index=all_n).to_markdown() + '\n\n</sub>\n\n')
         f.write('# 模型对标签个数-多样性: \n\n<sub>\n\n' + pd.DataFrame(_加粗(data2, all_n), index=all_n).to_markdown() + '\n\n</sub>\n\n')
 
-    # from bokeh.plotting import figure, save
-    # from bokeh.models.annotations import Label
-    # x = [data[i][4] for i in all_model]
-    # y = [data2[i][4] for i in all_model]
-    # for i, v in enumerate(x):
-    #     if v == '-':
-    #         x[i] = 0
-    # for i, v in enumerate(y):
-    #     if v == '-':
-    #         y[i] = 0
-    # x, y = _分离(x, y)
-    # p = figure(title="散点图", x_axis_label="准确度", y_axis_label="多样性", x_range = (min(x)-0.005, max(x)+0.01), width=1440, height=720)
-    # color = [('blue', 'red')[_is_XL(i)] for i in all_model]
-    # p.circle(x, y, size=10, color=color, alpha=0.5)
-    # for i in range(len(x)):
-    #     label = Label(x=x[i]+0.001, y=y[i]-0.0011, text=all_model[i], text_font_size='8pt')
-    #     p.add_layout(label)
-    # save(p, '导出多标签.html')
+    if not readme_mode:
+        from bokeh.plotting import figure, save
+        from bokeh.models.annotations import Label
+        x = [data[i][4] for i in all_model]
+        y = [data2[i][4] for i in all_model]
+        for i, v in enumerate(x):
+            if v == '-':
+                x[i] = 0
+        for i, v in enumerate(y):
+            if v == '-':
+                y[i] = 0
+        x, y = _分离(x, y)
+        p = figure(title="散点图", x_axis_label="准确度", y_axis_label="多样性", x_range = (min(x)-0.005, max(x)+0.01), width=1440, height=720)
+        color_map = {
+            'sd': 'blue',
+            'sdxl': 'red',
+            'nai3': 'red',
+            'flux.1s': 'green',
+        }
+        d23 = {i[2]: i[3] for i in 模型数据}
+        color = [color_map[d23.get(i, 'sd')] for i in all_model]
+        p.circle(x, y, size=10, color=color, alpha=0.5)
+        for i in range(len(x)):
+            label = Label(x=x[i]+0.001, y=y[i]-0.0011, text=all_model[i], text_font_size='8pt')
+            p.add_layout(label)
+        save(p, '导出多标签.html')
 
 
 
@@ -333,8 +342,9 @@ def 导出角色():
                 z[作品][1] += 1
         data[model] = [f'{int(z[k][0])}/{z[k][1]}' for k in sorted(作品名)]
         data[model].append(f'{int(np.sum([*m.values()]))}/{len(m)}')
-    # data = {k: v for k, v in sorted(data.items(), key=lambda x: x[0] if _is_XL(x[0]) else '0' + x[0]) if k in readme要的}
-    with open('测试结果/模型对不同作品的准确率.md', 'w', encoding='utf8') as f:
+    if readme_mode:
+        data = {k: v for k, v in sorted(data.items(), key=lambda x: x[0] if _is_XL(x[0]) else '0' + x[0]) if k in readme要的}
+    with open(f'测试结果/模型对不同作品的准确率{readme_mode or ""}.md', 'w', encoding='utf8') as f:
         f.write(f'{pd.DataFrame(data, index=[作品名[k] for k in sorted(作品名)]+["总体"]).to_markdown()}\n\n')
     df = pd.DataFrame(全m)
     df.to_pickle('测试结果/模型对不同角色的准确率.pkl')
@@ -364,10 +374,36 @@ def 导出clip_skip():
         f.write(f'{pd.DataFrame(data, index=sorted(dd[model].keys())).to_markdown()}\n\n')
 
 
+def 导出lvis():
+    d = {}
+    for 文件 in tqdm([*Path('savedata').glob('lvis_*_记录.json')]):
+        for dd in orjson.loads(open(文件, 'rb').read()):
+            model = _模型改名(dd['参数']['override_settings']['sd_model_checkpoint'])
+            n = len(dd['标签组'])
+            分数 = []
+            for names, scores in dd['检测结果']:
+                ddd = {}
+                for name, score in zip(names, scores):
+                    ddd[name] = max(ddd.get('name', 0), score)
+                分数.append(len(set(names))/n)
+            d.setdefault(model, []).extend(分数)
+    data = {model: sum(z)/len(z) for model, z in d.items()}
+    if readme_mode:
+        data = {k: v for k, v in data.items() if k in readme要的}
+    with open(f'测试结果/不同模型在lvis下的准确率{readme_mode or ""}.md', 'w', encoding='utf8') as f:
+        f.write(f'{pd.DataFrame(data, index=["score"]).to_markdown()}\n\n')
+
+
 if __name__ == '__main__':
     导出单标签()
     导出单标签2()
     导出多标签()
     导出角色()
     导出不同参数()
-    导出clip_skip()
+    导出lvis()
+
+    readme_mode = True
+    导出单标签()
+    导出多标签()
+    导出角色()
+    导出lvis()

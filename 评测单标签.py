@@ -6,9 +6,11 @@ from pathlib import Path
 import orjson
 from tqdm import tqdm
 
-from common import 缓存上网, ml_danbooru标签, safe_name, txt2img, txt2img_nai3, check_model, 要测的标签, 参数相同, 模型数据
+from common import ml_danbooru标签, safe_name, 要测的标签, 参数相同, 模型数据
+from backend_diffusers import txt2img
 
-sampler = 'DPM++ 2M Karras'
+sampler = 'DPM++ 2M'
+scheduler = 'Karras'
 seed = 1
 steps = 30
 width = 512
@@ -18,10 +20,8 @@ cfg_scale = 7
 存图文件夹 = Path('out')
 存图文件夹.mkdir(exist_ok=True)
 
-check_model(模型数据)
 
-
-def 评测模型(model, VAE) -> list[dict]:
+def 评测模型(model, VAE, model_type) -> list[dict]:
     存档文件名 = f'savedata/单标签_{model}_记录.json'
     if Path(存档文件名).exists():
         with open(存档文件名, 'r', encoding='utf8') as f:
@@ -37,13 +37,15 @@ def 评测模型(model, VAE) -> list[dict]:
             'width': width,
             'height': height,
             'steps': steps,
-            'sampler_index': sampler,
+            'sampler_name': sampler,
+            'scheduler': scheduler,
             'cfg_scale': cfg_scale,
             'override_settings': {
                 'sd_model_checkpoint': model,
                 'sd_vae': VAE,
                 'CLIP_stop_at_last_layers': 1,
             },
+            'model_type': model_type,
         }
         skip = False
         for i in 记录:
@@ -56,10 +58,7 @@ def 评测模型(model, VAE) -> list[dict]:
             'batch_size': 4,
             'n_iter': 4,
         }
-        if model == 'nai-diffusion-3':
-            图s = txt2img_nai3(数量参数 | 参数)
-        else:
-            图s = txt2img(数量参数 | 参数)
+        图s = txt2img(数量参数 | 参数)
         for i, b in enumerate(图s):
             with open(存图文件夹 / safe_name(f'{标签}-{i}@{model}×{VAE}@{width}×{height}@{steps}×{sampler}.png'), 'wb') as f:
                 f.write(b)
@@ -79,5 +78,5 @@ def 评测模型(model, VAE) -> list[dict]:
     return 记录
 
 
-for model, VAE, *_ in tqdm(模型数据, ncols=70, desc='all'):
-    评测模型(model, VAE)
+for model, VAE, 简称, model_type in tqdm(模型数据, ncols=70, desc='all'):
+    评测模型(model, VAE, model_type)
