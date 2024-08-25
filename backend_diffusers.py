@@ -52,7 +52,7 @@ class 超StableDiffusionKDiffusionPipeline:
 
 
 class 超StableDiffusionXLPipeline:
-    def __init__(self, path, vae_path=None, 串行化vae=True, 使用deepcache=False):
+    def __init__(self, path, vae_path=None, 串行化vae=True, 使用deepcache=False, 保存中间结果=False):
         p = {}
         if vae_path:
             p['vae'] = AutoencoderKL.from_single_file(vae_path, torch_dtype=torch.float16, scaling_factor=0.13025).to("cuda")
@@ -69,6 +69,20 @@ class 超StableDiffusionXLPipeline:
             helper = DeepCacheSDHelper(pipe=self._pipe)
             helper.set_params(cache_interval=2)
             helper.enable()
+        if 保存中间结果:
+            _s = self._pipe.scheduler.step
+            def 假step(noise_pred, t, latents, **d):
+                m = self._pipe.scheduler.timesteps.max()
+                denoised_latents = (latents-noise_pred * (t / m))[0]    # 这个实现有点问题，不过还算能看，就先这样吧
+                denoised_latents = denoised_latents.reshape([1, *denoised_latents.shape])
+                image = self._pipe.image_processor.postprocess(
+                    self._pipe.vae.to(torch.float32).decode(denoised_latents.to(torch.float32) / self._pipe.vae.config.scaling_factor, return_dict=False)[0],
+                    output_type='pil',
+                )[0]
+                self.step_image.append(image)
+                self._pipe.vae.to(torch.float16)
+                return _s(noise_pred, t, latents, **d)
+            self._pipe.scheduler.step = 假step
         self.compel = Compel(truncate_long_prompts=False, tokenizer=[self._pipe.tokenizer, self._pipe.tokenizer_2], text_encoder=[self._pipe.text_encoder, self._pipe.text_encoder_2], returned_embeddings_type=ReturnedEmbeddingsType.PENULTIMATE_HIDDEN_STATES_NON_NORMALIZED, requires_pooled=[False, True])
 
     def __call__(
